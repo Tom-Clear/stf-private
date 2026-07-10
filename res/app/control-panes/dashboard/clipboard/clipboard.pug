@@ -1,11 +1,28 @@
 .widget-container.fluid-height.stf-clipboard(ng-controller='ClipboardCtrl')
+  //- 原有 Clipboard 剪贴板模板（已注释保留源码）
+  //-
+    .heading
+      stacked-icon(icon='fa-copy', color='color-brown')
+      span(translate) Clipboard
+    .widget-content.padded
+      .input-group.form-inline
+        textarea(rows='1', ng-model='control.clipboardContent', msd-elastic, text-focus-select,
+        tabindex='20').form-control.clipboard-textarea
+        span.input-group-btn
+          button.btn.btn-primary-outline(ng-click='control.getClipboardContent()', uib-tooltip='{{ "Get clipboard contents" | translate }}')
+            i.fa.fa-refresh
+
+  //- 设备拓展功能开始
   .heading
-    stacked-icon(icon='fa-copy', color='color-brown')
-    span(translate) Clipboard
+    stacked-icon(icon='fa-robot', color='color-purple')
+    span(translate) 设备拓展功能
   .widget-content.padded
-    .input-group.form-inline
-      textarea(rows='1', ng-model='control.clipboardContent', msd-elastic, text-focus-select,
-      tabindex='20').form-control.clipboard-textarea
-      span.input-group-btn
-        button.btn.btn-primary-outline(ng-click='control.getClipboardContent()', uib-tooltip='{{ "Get clipboard contents" | translate }}')
-          i.fa.fa-refresh
+    a.btn.btn-primary-outline.stf-uia-link(ng-if='uiaUrl', ng-href='{{uiaUrl}}', target='_blank')
+      i.fa.fa-external-link
+      span(translate) 打开设备拓展功能页面
+    .stf-uia-status(ng-if='!uiaUrl')
+      span(translate) 未检测到设备信息，请在控制页面使用
+    .stf-uia-info(ng-if='deviceSerial')
+      span(translate) 设备:
+      span  {{deviceSerial}}
+  //- 设备拓展功能结束

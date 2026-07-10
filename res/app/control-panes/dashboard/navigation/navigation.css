@@ -1,3 +1,4 @@
+/* 原有 Navigation 浏览器导航样式（已注释保留源码）
 .stf-navigation .browser-icon {
   width: 18px;
   height: auto;
@@ -29,4 +30,12 @@
 .stf-navigation .browser-buttons {
   min-width: 44px;
   min-height: 35px;
+}
+*/
+
+/* 语音发送功能样式 */
+.stf-navigation .stf-voice-status {
+  font-size: 12px;
+  margin-top: 8px;
+  min-height: 18px;
 }

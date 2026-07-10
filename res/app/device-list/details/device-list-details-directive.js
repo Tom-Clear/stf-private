@@ -157,6 +157,37 @@ module.exports = function DeviceListDetailsDirective(
         useBtn.parentNode.insertBefore(occupyBtn, useBtn.nextSibling)
       }
 
+      function isDisconnectedStatus(statusText) {
+        if (!statusText) return false
+        var lower = statusText.toLowerCase()
+        if (lower.indexOf('断开') !== -1) return true
+        if (lower.indexOf('disconnect') !== -1) return true
+        if (lower.indexOf('offline') !== -1) return true
+        if (lower.indexOf('absent') !== -1) return true
+        return false
+      }
+
+      function processDeleteButtonForRow(tr, device) {
+        var statusCell = tr.querySelector('a.device-status')
+        if (!statusCell) return
+
+        var deleteBtn = tr.querySelector('.stf-delete-btn')
+        if (deleteBtn) {
+          deleteBtn.parentNode.removeChild(deleteBtn)
+        }
+
+        var statusText = statusCell.textContent || ''
+        if (!isDisconnectedStatus(statusText)) return
+
+        deleteBtn = document.createElement('button')
+        deleteBtn.className = 'btn btn-xs btn-danger-outline stf-delete-btn'
+        deleteBtn.style.marginLeft = '4px'
+        deleteBtn.innerHTML = '<i class="fa fa-trash"></i> ' + gettext('删除')
+        deleteBtn.setAttribute('data-serial', device.serial)
+
+        statusCell.parentNode.insertBefore(deleteBtn, statusCell.nextSibling)
+      }
+
       function showOccupyDialog(serial) {
         if (document.getElementById('stf-occupy-overlay')) return
 
@@ -222,6 +253,33 @@ module.exports = function DeviceListDetailsDirective(
           var device = mapping[id]
           if (device) {
             showOccupyDialog(device.serial)
+          }
+          e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+
+        var deleteBtn = target.classList.contains('stf-delete-btn') ? target :
+          (target.parentNode && target.parentNode.classList.contains('stf-delete-btn') ? target.parentNode : null)
+
+        if (deleteBtn) {
+          var id = deleteBtn.parentNode.parentNode.id
+          var device = mapping[id]
+          if (device) {
+            if (confirm(gettext('确认要删除设备 ') + device.serial + ' 吗？')) {
+              DeviceService.removeDevice(device.serial)
+                .then(function() {
+                  alert(gettext('设备 ') + device.serial + ' 删除成功')
+                  var tr = tbody.children[id]
+                  if (tr) {
+                    tbody.removeChild(tr)
+                  }
+                  delete mapping[id]
+                })
+                .catch(function(err) {
+                  alert(gettext('删除失败') + ' (' + (err.status || '') + ')')
+                })
+            }
           }
           e.preventDefault()
           e.stopPropagation()
@@ -475,6 +533,7 @@ module.exports = function DeviceListDetailsDirective(
         }
 
         processOccupyButtonForRow(tr, device)
+        processDeleteButtonForRow(tr, device)
 
         mapping[id] = device
 
@@ -532,6 +591,7 @@ module.exports = function DeviceListDetailsDirective(
         }
 
         processOccupyButtonForRow(tr, device)
+        processDeleteButtonForRow(tr, device)
 
         return tr
       }

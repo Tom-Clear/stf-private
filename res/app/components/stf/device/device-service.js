@@ -280,5 +280,9 @@ module.exports = function DeviceServiceFactory($http, socket, EnhanceDeviceServi
     })
   }
 
+  deviceService.removeDevice = function(serial) {
+    return $http.delete('/api/v1/devices/' + encodeURIComponent(serial))
+  }
+
   return deviceService
 }

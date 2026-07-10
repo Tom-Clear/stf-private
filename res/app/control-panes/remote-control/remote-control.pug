@@ -1,0 +1,39 @@
+.stf-remote-control(ng-controller='RemoteControlCtrl')
+  #stf-remote
+    .remote-body
+      .remote-row
+        button.remote-btn(ng-click='sendKeyEvent(24)')
+          i.fa.fa-volume-up
+          | +
+        button.remote-btn(ng-click='sendKeyEvent(25)')
+          i.fa.fa-volume-down
+          | -
+        button.remote-btn(ng-click='sendKeyEvent(176)')
+          i.fa.fa-cog
+        button.remote-btn(ng-click='sendKeyEvent(178)')
+          i.fa.fa-desktop
+      .dpad
+        div
+        button.remote-btn.btn-dir(ng-click='sendKeyEvent(19)')
+          i.fa.fa-chevron-up
+        div
+        button.remote-btn.btn-dir(ng-click='sendKeyEvent(21)')
+          i.fa.fa-chevron-left
+        button.remote-btn.btn-ok(ng-click='sendKeyEvent(23)', translate) 确认
+        button.remote-btn.btn-dir(ng-click='sendKeyEvent(22)')
+          i.fa.fa-chevron-right
+        div
+        button.remote-btn.btn-dir(ng-click='sendKeyEvent(20)')
+          i.fa.fa-chevron-down
+        div
+      .remote-row
+        button.remote-btn(ng-click='sendKeyEvent(142)')
+          i.fa.fa-home
+          span(translate) 主页
+        button.remote-btn(ng-click='sendKeyEvent(4)')
+          i.fa.fa-reply
+          span(translate) 返回
+        button.remote-btn(ng-click='sendKeyEvent(82)')
+          i.fa.fa-bars
+          span(translate) 菜单
+      .remote-status(ng-bind='remoteStatus')

@@ -49,14 +49,31 @@ module.exports =
       }
     ].concat(angular.copy(sharedTabs))
 
+    // 原 belowTabs 定义（已注释保留源码）：包含 Logs + 与顶部重复的 sharedTabs
+    // $scope.belowTabs = [
+    //   {
+    //     title: gettext('Logs'),
+    //     icon: 'fa-list-alt color-red',
+    //     templateUrl: 'control-panes/logs/logs.pug',
+    //     filters: ['native', 'web']
+    //   }
+    // ].concat(angular.copy(sharedTabs))
+
+    // 改造后：底部只保留遥控器与 Logs，移除 Screenshots/Automation/Advanced/File Explorer/Info
     $scope.belowTabs = [
+      {
+        title: gettext('Remote Control'),
+        icon: 'fa-gamepad color-purple',
+        templateUrl: 'control-panes/remote-control/remote-control.pug',
+        filters: ['native', 'web']
+      },
       {
         title: gettext('Logs'),
         icon: 'fa-list-alt color-red',
         templateUrl: 'control-panes/logs/logs.pug',
         filters: ['native', 'web']
       }
-    ].concat(angular.copy(sharedTabs))
+    ]
 
     $scope.device = null
     $scope.control = null

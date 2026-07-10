@@ -273,5 +273,12 @@ module.exports = function DeviceServiceFactory($http, socket, EnhanceDeviceServi
     })
   }
 
+  deviceService.occupy = function(serial, timeout) {
+    return $http.post('/api/v1/user/devices', {
+      serial: serial,
+      timeout: timeout
+    })
+  }
+
   return deviceService
 }

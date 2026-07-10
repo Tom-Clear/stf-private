@@ -15,3 +15,66 @@
 .device-list-details-content .device-status.state-available {
   font-weight: 600;
 }
+
+.stf-occupy-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.stf-occupy-dialog {
+  background: #fff;
+  padding: 20px 25px;
+  border-radius: 4px;
+  min-width: 280px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.stf-occupy-dialog h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+}
+
+.stf-occupy-dialog label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: normal;
+  color: #555;
+}
+
+.stf-occupy-dialog input[type="number"] {
+  width: 100%;
+  padding: 6px 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 14px;
+}
+
+.stf-occupy-dialog .btn-row {
+  text-align: right;
+}
+
+.stf-occupy-dialog .btn-cancel,
+.stf-occupy-dialog .btn-confirm {
+  padding: 6px 14px;
+  margin-left: 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.stf-occupy-dialog .btn-confirm {
+  background: #337ab7;
+  border-color: #2e6da4;
+  color: #fff;
+}

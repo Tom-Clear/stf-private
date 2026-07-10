@@ -124,6 +124,110 @@ module.exports = function DeviceListDetailsDirective(
         }
       }
 
+      function isDisabledStatus(statusText) {
+        if (!statusText) return true
+        var lower = statusText.toLowerCase()
+        if (lower.indexOf('断开') !== -1) return true
+        if (lower.indexOf('停止使用') !== -1) return true
+        if (lower.indexOf('disconnect') !== -1) return true
+        if (lower.indexOf('offline') !== -1) return true
+        if (lower.indexOf('absent') !== -1) return true
+        if (lower.indexOf('stop') !== -1) return true
+        return false
+      }
+
+      function processOccupyButtonForRow(tr, device) {
+        var useBtn = tr.querySelector('a.device-status')
+        if (!useBtn) return
+
+        var occupyBtn = tr.querySelector('.stf-occupy-btn')
+        if (occupyBtn) {
+          occupyBtn.parentNode.removeChild(occupyBtn)
+        }
+
+        var statusText = useBtn.textContent || ''
+        if (isDisabledStatus(statusText)) return
+
+        occupyBtn = document.createElement('button')
+        occupyBtn.className = 'btn btn-xs btn-primary-outline stf-occupy-btn'
+        occupyBtn.style.marginLeft = '4px'
+        occupyBtn.innerHTML = '<i class="fa fa-lock"></i> ' + gettext('占用')
+        occupyBtn.setAttribute('data-serial', device.serial)
+
+        useBtn.parentNode.insertBefore(occupyBtn, useBtn.nextSibling)
+      }
+
+      function showOccupyDialog(serial) {
+        if (document.getElementById('stf-occupy-overlay')) return
+
+        var overlay = document.createElement('div')
+        overlay.id = 'stf-occupy-overlay'
+        overlay.className = 'stf-occupy-overlay'
+        overlay.innerHTML = '<div class="stf-occupy-dialog">' +
+          '<h4>' + gettext('设备占用') + '</h4>' +
+          '<label>' + gettext('占用时长（小时）') + '</label>' +
+          '<input type="number" min="1" value="24" />' +
+          '<div class="btn-row">' +
+          '<button class="btn-cancel">' + gettext('取消') + '</button>' +
+          '<button class="btn-confirm">' + gettext('确认') + '</button>' +
+          '</div>' +
+          '</div>'
+
+        document.body.appendChild(overlay)
+
+        var hoursInput = overlay.querySelector('input[type="number"]')
+        hoursInput.focus()
+        hoursInput.select()
+
+        function closeDialog() {
+          if (overlay.parentElement) document.body.removeChild(overlay)
+        }
+
+        overlay.querySelector('.btn-cancel').addEventListener('click', closeDialog)
+        overlay.addEventListener('click', function(e) {
+          if (e.target === overlay) closeDialog()
+        })
+
+        overlay.querySelector('.btn-confirm').addEventListener('click', function() {
+          var hours = parseFloat(hoursInput.value)
+          if (isNaN(hours) || hours <= 0) {
+            hoursInput.style.borderColor = '#d9534f'
+            return
+          }
+          var timeoutMs = Math.round(hours * 3600 * 1000)
+
+          DeviceService.occupy(serial, timeoutMs)
+            .then(function() {
+              alert(gettext('设备占用成功'))
+              closeDialog()
+            })
+            .catch(function(err) {
+              alert(gettext('占用失败') + ' (' + (err.status || '') + ')')
+            })
+        })
+
+        hoursInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') overlay.querySelector('.btn-confirm').click()
+          if (e.key === 'Escape') closeDialog()
+        })
+      }
+
+      function checkDeviceActions(e) {
+        var target = e.target
+        var occupyBtn = target.classList.contains('stf-occupy-btn') ? target :
+          (target.parentNode && target.parentNode.classList.contains('stf-occupy-btn') ? target.parentNode : null)
+
+        if (occupyBtn) {
+          var id = occupyBtn.parentNode.parentNode.id
+          var device = mapping[id]
+          if (device) {
+            showOccupyDialog(device.serial)
+          }
+          e.preventDefault()
+          e.stopPropagation()
+        }
+      }
+
       function destroyXeditableNote(id) {
         var tr = tbody.children[id]
         for (var i = 0; i < tr.cells.length; i++) {
@@ -158,6 +262,7 @@ module.exports = function DeviceListDetailsDirective(
         checkDeviceStatus(e)
         checkDeviceSmallImage(e)
         checkDeviceNote(e)
+        checkDeviceActions(e)
       })
 
       // Import column definitions
@@ -369,6 +474,8 @@ module.exports = function DeviceListDetailsDirective(
           tr.appendChild(td)
         }
 
+        processOccupyButtonForRow(tr, device)
+
         mapping[id] = device
 
         return tr
@@ -423,6 +530,8 @@ module.exports = function DeviceListDetailsDirective(
         for (var i = 0, l = activeColumns.length; i < l; ++i) {
           scope.columnDefinitions[activeColumns[i]].update(tr.cells[i], device)
         }
+
+        processOccupyButtonForRow(tr, device)
 
         return tr
       }

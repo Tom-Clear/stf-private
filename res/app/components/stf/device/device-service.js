@@ -284,5 +284,9 @@ module.exports = function DeviceServiceFactory($http, socket, EnhanceDeviceServi
     return $http.delete('/api/v1/devices/' + encodeURIComponent(serial))
   }
 
+  deviceService.reconnectDevice = function(serial) {
+    return $http.post('/api/v1/devices/' + encodeURIComponent(serial) + '/reconnect')
+  }
+
   return deviceService
 }

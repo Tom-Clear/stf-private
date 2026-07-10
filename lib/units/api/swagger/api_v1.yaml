@@ -1972,6 +1972,35 @@ paths:
             $ref: "#/definitions/UnexpectedErrorResponse"
       security:
         - accessTokenAuth: [ ]
+  /devices/{serial}/reconnect:
+    x-swagger-router-controller: devices
+    post:
+      summary: Reconnects a device via ADB connect
+      description: Instructs the ADB server to connect to the device using its serial as host:port
+      operationId: reconnectDevice
+      tags:
+        - devices
+      parameters:
+        - name: serial
+          in: path
+          description: Device serial (host:port for network ADB devices)
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Device reconnect initiated
+          schema:
+            $ref: "#/definitions/Response"
+        default:
+          description: >
+            Unexpected Error:
+              * 400: Bad Request => invalid serial format
+              * 401: Unauthorized => bad credentials
+              * 500: Internal Server Error
+          schema:
+            $ref: "#/definitions/UnexpectedErrorResponse"
+      security:
+        - accessTokenAuth: []
   /devices/groups/{id}:
     x-swagger-router-controller: devices
     put:

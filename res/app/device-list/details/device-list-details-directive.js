@@ -188,6 +188,37 @@ module.exports = function DeviceListDetailsDirective(
         statusCell.parentNode.insertBefore(deleteBtn, statusCell.nextSibling)
       }
 
+      function isOfflineStatus(statusText) {
+        if (!statusText) return false
+        var lower = statusText.toLowerCase()
+        if (lower.indexOf('断开') !== -1) return true
+        if (lower.indexOf('disconnect') !== -1) return true
+        if (lower.indexOf('offline') !== -1) return true
+        if (lower.indexOf('absent') !== -1) return true
+        return false
+      }
+
+      function processReconnectButtonForRow(tr, device) {
+        var statusCell = tr.querySelector('a.device-status')
+        if (!statusCell) return
+
+        var reconnectBtn = tr.querySelector('.stf-reconnect-btn')
+        if (reconnectBtn) {
+          reconnectBtn.parentNode.removeChild(reconnectBtn)
+        }
+
+        var statusText = statusCell.textContent || ''
+        if (!isOfflineStatus(statusText)) return
+
+        reconnectBtn = document.createElement('button')
+        reconnectBtn.className = 'btn btn-xs btn-info-outline stf-reconnect-btn'
+        reconnectBtn.style.marginLeft = '4px'
+        reconnectBtn.innerHTML = '<i class="fa fa-refresh"></i> ' + gettext('重连')
+        reconnectBtn.setAttribute('data-serial', device.serial)
+
+        statusCell.parentNode.insertBefore(reconnectBtn, statusCell.nextSibling)
+      }
+
       function showOccupyDialog(serial) {
         if (document.getElementById('stf-occupy-overlay')) return
 
@@ -280,6 +311,27 @@ module.exports = function DeviceListDetailsDirective(
                   alert(gettext('删除失败') + ' (' + (err.status || '') + ')')
                 })
             }
+          }
+          e.preventDefault()
+          e.stopPropagation()
+          return
+        }
+
+        var reconnectBtn = target.classList.contains('stf-reconnect-btn') ? target :
+          (target.parentNode && target.parentNode.classList.contains('stf-reconnect-btn') ? target.parentNode : null)
+
+        if (reconnectBtn) {
+          var id = reconnectBtn.parentNode.parentNode.id
+          var device = mapping[id]
+          if (device) {
+            DeviceService.reconnectDevice(device.serial)
+              .then(function() {
+                alert(gettext('重连请求已发送：') + device.serial)
+              })
+              .catch(function(err) {
+                var msg = err.data && err.data.message ? err.data.message : ''
+                alert(gettext('重连失败') + ' (' + (err.status || '') + ')' + (msg ? ': ' + msg : ''))
+              })
           }
           e.preventDefault()
           e.stopPropagation()
@@ -534,6 +586,7 @@ module.exports = function DeviceListDetailsDirective(
 
         processOccupyButtonForRow(tr, device)
         processDeleteButtonForRow(tr, device)
+        processReconnectButtonForRow(tr, device)
 
         mapping[id] = device
 
@@ -592,6 +645,7 @@ module.exports = function DeviceListDetailsDirective(
 
         processOccupyButtonForRow(tr, device)
         processDeleteButtonForRow(tr, device)
+        processReconnectButtonForRow(tr, device)
 
         return tr
       }

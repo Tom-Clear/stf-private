@@ -54,7 +54,10 @@ module.exports = function DeviceListIconsDirective(
         }
 
         // .device-name
-        nt.nodeValue = device.enhancedName
+        // 原逻辑：nt.nodeValue = device.enhancedName
+        // 改造后：有 notes 时显示备注，否则显示设备名
+        nt.nodeValue = device.notes || device.enhancedName
+        name.title = device.notes ? ('serial: ' + device.serial) : ''
 
         // button
         at.nodeValue = $filter('translate')(device.enhancedStateAction)

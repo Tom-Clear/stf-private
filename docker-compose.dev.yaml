@@ -1,0 +1,64 @@
+# STF 开发调试 docker-compose
+# 用法:
+#   1. 先连接设备:  docker compose -f docker-compose.dev.yaml exec adb adb connect <设备IP:端口>
+#   2. 启动服务:    docker compose -f docker-compose.dev.yaml up -d
+#   3. 查看日志:    docker compose -f docker-compose.dev.yaml logs -f stf
+#   4. 停止服务:    docker compose -f docker-compose.dev.yaml down
+#
+# 注意: 启动前先停止 start.sh 创建的独立 ADB 容器，避免 5037 端口冲突
+#   docker rm -f adb
+
+version: "3"
+
+services:
+  rethinkdb:
+    container_name: rethinkdb
+    image: rethinkdb:2.4.2
+    restart: unless-stopped
+    volumes:
+      - rethinkdb-data:/data
+    command: rethinkdb --bind all --cache-size 2048
+    ports:
+      - "8080:8080"    # RethinkDB 管理界面（开发调试用）
+      - "28015:28015"  # RethinkDB 客户端端口
+
+  adb:
+    container_name: adb
+    image: devicefarmer/adb:latest
+    restart: unless-stopped
+    privileged: true
+    environment:
+      - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/platform-tools
+    command: adb -a -P 5037 server nodaemon
+    ports:
+      - "5037:5037"    # 暴露到宿主机，方便从 WSL/Windows 执行 adb 命令调试
+
+  stf:
+    container_name: stf
+    # 自定义镜像
+    image: stf-jhk
+    # 官方镜像
+    # image: devicefarmer/stf
+    restart: unless-stopped
+    ports:
+      - "7100:7100"                # Web UI
+      - "7110:7110"                # WebSocket
+      - "7400-7500:7400-7500"     # 设备通信端口
+    environment:
+      - TZ=America/Los_Angeles
+      - RETHINKDB_PORT_28015_TCP=tcp://rethinkdb:28015
+      - STF_ADMIN_EMAIL=administrator@fakedomain.com
+      - STF_ADMIN_NAME=administrator
+      - STF_PROVIDER_SCREEN_JPEG_QUALITY=20
+      - STF_PROVIDER_SCREEN_GRABBER=minicap-apk
+      - STF_PROVIDER_HEARTBEAT_INTERVAL=10000
+      - STF_PROVIDER_BOOT_COMPLETE_TIMEOUT=120000
+    command: >
+      stf local
+      --adb-host adb
+      --allow-remote
+      --provider-min-port 7400
+      --provider-max-port 7500
+
+volumes:
+  rethinkdb-data: {}

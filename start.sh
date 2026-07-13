@@ -36,7 +36,31 @@ else
   exit 1
 fi
 
-# ----- 2. 确保 ADB 容器运行 -----
+# ----- 2. 确保 RethinkDB 容器运行 -----
+RETHINKDB_CONTAINER="rethinkdb"
+RETHINKDB_IMAGE="rethinkdb:2.4.2"
+
+if [ "$($DOCKER ps -q -f name=^${RETHINKDB_CONTAINER}$)" ]; then
+  info "RethinkDB 容器已在运行"
+else
+  if [ "$($DOCKER ps -aq -f name=^${RETHINKDB_CONTAINER}$)" ]; then
+    info "清理旧的 RethinkDB 容器..."
+    $DOCKER rm -f "$RETHINKDB_CONTAINER" >/dev/null
+  fi
+  info "启动 RethinkDB 容器..."
+  $DOCKER run -d \
+    --name "$RETHINKDB_CONTAINER" \
+    --restart unless-stopped \
+    -p 8080:8080 \
+    -p 28015:28015 \
+    -v rethinkdb-data:/data \
+    "$RETHINKDB_IMAGE" \
+    rethinkdb --bind all --cache-size 2048 >/dev/null
+  info "等待 RethinkDB 就绪..."
+  sleep 3
+fi
+
+# ----- 3. 确保 ADB 容器运行 -----
 if [ "$($DOCKER ps -q -f name=^${ADB_CONTAINER}$)" ]; then
   info "ADB 容器已在运行"
 else
@@ -56,7 +80,7 @@ else
   sleep 2
 fi
 
-# ----- 3. 连接设备 -----
+# ----- 4. 连接设备 -----
 info "连接设备 $DEVICE_ADDR ..."
 $DOCKER exec "$ADB_CONTAINER" adb connect "$DEVICE_ADDR" || {
   error "连接设备失败，请检查设备 IP 和网络"
@@ -65,11 +89,11 @@ $DOCKER exec "$ADB_CONTAINER" adb connect "$DEVICE_ADDR" || {
 
 sleep 1
 
-# ----- 4. 显示已连接设备 -----
+# ----- 5. 显示已连接设备 -----
 info "当前 ADB 设备列表："
 $DOCKER exec "$ADB_CONTAINER" adb devices
 
-# ----- 5. 设置环境变量 -----
+# ----- 6. 设置环境变量 -----
 export STF_PROVIDER_SCREEN_JPEG_QUALITY=20
 export STF_PROVIDER_SCREEN_GRABBER=minicap-apk
 export STF_ADMIN_NAME=administrator@fakedomain.com
@@ -82,7 +106,7 @@ export TZ='America/Los_Angeles'
 info "已注入环境变量："
 env | grep -E "^(STF_|LOG_LEVEL|TZ)=" | sed 's/^/  /'
 
-# ----- 6. 启动 STF -----
+# ----- 7. 启动 STF -----
 info "启动 STF (adb-host=$ADB_HOST:$ADB_PORT)..."
 info "Web UI 将在 http://localhost:7100 提供访问"
 echo ""

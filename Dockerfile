@@ -11,6 +11,9 @@ ENV PATH=/app/bin:$PATH
 WORKDIR /app
 COPY . /tmp/build/
 
+# Fix CRLF line endings that break shebang lines on Linux containers
+RUN sed -i 's/\r$//' /tmp/build/bin/stf || true
+
 # Export default app port, not enough for all processes but it should do
 # for now.
 EXPOSE 3000

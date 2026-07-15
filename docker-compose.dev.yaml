@@ -36,7 +36,7 @@ services:
   stf:
     container_name: stf
     # 自定义镜像
-    image: stf-jhk
+    image: stf-jhk:1.1.0
     # 官方镜像
     # image: devicefarmer/stf
     restart: unless-stopped

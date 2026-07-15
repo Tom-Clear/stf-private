@@ -342,3 +342,184 @@ docker compose -f docker-compose.dev.yaml down
 - **Docker 构建修复**：修复 Linux 容器中因 CRLF 换行符导致的脚本执行失败问题，确保 `bin/stf` 在容器内正常运行
 
 > 以上功能均为 UI 层新增能力，本地启动 STF 并连接设备后即可在设备列表和远程控制面板中体验。
+
+## 8. 常见问题（FAQ）
+
+### Q1: STF 启动后设备 worker 反复崩溃，日志提示 `Failed more than 3 times in 10000ms`
+
+**现象**
+
+启动 STF 并连接网络 ADB 设备后，控制台循环出现类似如下错误：
+
+```text
+WRN/device:plugins:touch  [xxx.xxx.xxx.xxx:5555] Connection to minitouch ended unexpectedly
+INF/device:plugins:touch  [xxx.xxx.xxx.xxx:5555] Launching touch service
+INF/device:plugins:touch  [xxx.xxx.xxx.xxx:5555] minitouch says: "Unable to find a suitable touch device"
+INF/device:plugins:touch  [xxx.xxx.xxx.xxx:5555] minitouch says: "using Android InputManager"
+ERR/device:plugins:touch  [xxx.xxx.xxx.xxx:5555] Touch consumer had an error Error: Failed more than 3 times in 10000ms
+FTL/util:lifecycle  [xxx.xxx.xxx.xxx:5555] Shutting down due to fatal error
+```
+
+**原因**
+
+通常是**之前某次 STF 实例没有彻底退出**，形成了"僵尸"进程。该残留实例持续占用设备的 ADB 连接，并在设备端保持 `stf.agent` / `minitouch` / `minirev` 等 shell 进程。新启动的 STF 再次连接同一台设备时，会因为 `localabstract:minitouch` socket 被占用而启动失败，失败次数在 10 秒内累积到 3 次即触发 fatal，导致设备 worker 退出。
+
+**验证**
+
+在 ADB 容器中执行：
+
+```bash
+docker exec adb adb -s <设备IP>:5555 shell "ps -A | grep -E 'stf.agent|minitouch|minirev'"
+```
+
+如果看到相关进程，且手动 `pkill` 后进程又重新出现，即可确认存在残留 STF 实例在拉起这些进程。
+
+**解决方案**
+
+1. 优先尝试彻底清理设备端残留进程：
+   ```bash
+   docker exec adb adb -s <设备IP>:5555 shell "pkill -9 stf.agent; pkill -9 minitouch; pkill -9 minirev"
+   ```
+
+2. 检查并关闭所有可能运行 STF 的终端、IDE 运行任务、WSL 会话等，确保没有残留 node 进程。
+
+3. 若清理后问题依旧，最直接的方案是**重启电脑**，以彻底清除所有残留的 STF 进程和 ADB 连接状态。
+
+**预防**
+
+- 停止 STF 时不要只关闭浏览器或终端窗口，应在启动终端按 `Ctrl+C` 等待所有子进程退出。
+- 停止后可通过 `ps -A | grep -E 'stf.agent|minitouch|minirev'` 确认设备端进程已被清理。
+
+## 9. 镜像构建与上线部署
+
+### 9.1 本地构建 Docker 镜像
+
+在项目根目录执行：
+
+```bash
+docker build -t stf:<版本号> .
+```
+
+示例：
+
+```bash
+docker build -t stf:3.7.8 .
+```
+
+构建过程会基于 [`Dockerfile`](Dockerfile) 完成以下操作：
+
+- 安装 Node.js、构建工具及运行时依赖
+- 执行 `npm install` 与 `npm pack`
+- 将产物解压到 `/app` 目录
+- 清理开发依赖与临时文件
+
+> 注意：构建耗时较长，请确保网络畅通且 Docker 有足够磁盘空间。
+
+### 9.2 导出镜像为 tar 包
+
+构建成功后，将镜像导出为 tar 文件，便于传输到无外网的服务器：
+
+```bash
+docker save -o stf-<版本号>.tar stf:<版本号>
+```
+
+示例：
+
+```bash
+docker save -o stf-3.7.8.tar stf:3.7.8
+```
+
+导出后可通过 `ls -lh` 查看 tar 包大小。
+
+### 9.3 将 tar 包上传到服务器
+
+根据服务器环境选择传输方式，例如 `scp`、`rsync` 或 FTP：
+
+```bash
+scp stf-3.7.8.tar user@your-server:/path/to/deploy/
+```
+
+### 9.4 服务器导入镜像
+
+登录服务器，进入 tar 包所在目录，执行导入：
+
+```bash
+docker load -i stf-3.7.8.tar
+```
+
+导入成功后，可通过以下命令确认镜像存在：
+
+```bash
+docker images | grep stf
+```
+
+### 9.5 服务器运行 STF 容器
+
+#### 方式一：使用 docker-compose（推荐）
+
+参考项目已有的 [`docker-compose.yaml`](docker-compose.yaml)，将 `stf` 服务的镜像替换为刚刚导入的镜像：
+
+```yaml
+stf:
+  container_name: stf
+  image: stf:3.7.8   # 替换为实际版本号
+  ports:
+    - "7100:7100"
+    - "7110:7110"
+    - "7400-7500:7400-7500"
+  environment:
+    - TZ='America/Los_Angeles'
+    - RETHINKDB_PORT_28015_TCP=tcp://rethinkdb:28015
+    - STF_ADMIN_EMAIL=<YOUR_EMAIL>
+    - STF_ADMIN_NAME=<YOUR_NAME>
+  restart: unless-stopped
+  command: >
+    stf local
+    --adb-host adb
+    --public-ip YOUR_SERVER_IP
+    --provider-min-port 7400
+    --provider-max-port 7500
+```
+
+启动服务：
+
+```bash
+docker-compose up -d
+```
+
+#### 方式二：使用 docker run 手动启动
+
+```bash
+docker run -d \
+  --name stf \
+  --restart unless-stopped \
+  -p 7100:7100 \
+  -p 7110:7110 \
+  -p 7400-7500:7400-7500 \
+  -e TZ='America/Los_Angeles' \
+  -e RETHINKDB_PORT_28015_TCP=tcp://<rethinkdb-host>:28015 \
+  -e STF_ADMIN_EMAIL=<YOUR_EMAIL> \
+  -e STF_ADMIN_NAME=<YOUR_NAME> \
+  stf:3.7.8 \
+  stf local \
+    --adb-host <adb-host> \
+    --public-ip <YOUR_SERVER_IP> \
+    --provider-min-port 7400 \
+    --provider-max-port 7500
+```
+
+### 9.6 验证部署
+
+1. 查看容器状态：
+   ```bash
+   docker ps | grep stf
+   ```
+
+2. 查看启动日志：
+   ```bash
+   docker logs -f stf
+   ```
+
+3. 浏览器访问 `http://<YOUR_SERVER_IP>:7100`，确认 STF Web 界面正常。
+
+4. 连接一台测试设备，确认设备列表可正常显示并能进入远程控制面板。

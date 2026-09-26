@@ -174,7 +174,6 @@ module.exports = function NavigationCtrl($scope, $rootScope, $window, gettext, $
   $scope.voiceEnvClass = VOICE_ENV_META.none.className
   $scope.voiceEnvDetail = gettext('点击刷新按钮查询当前语音环境')
   $scope.voiceEnvBusy = false
-  $scope.voiceEnvRestart = true
   $scope.voiceEnvTip = ''
   $scope.voiceEnvTipColor = '#999'
 
@@ -287,9 +286,6 @@ module.exports = function NavigationCtrl($scope, $rootScope, $window, gettext, $
 
     return queryEnvValues()
       .then(applyEnvResult)
-      .then(function() {
-        setEnvTip('✅ ' + gettext('语音环境已刷新'), '#5cb85c')
-      })
       .catch(function() {
         setEnvTip('❌ ' + gettext('查询语音环境失败'), '#d9534f')
       })
@@ -331,16 +327,16 @@ module.exports = function NavigationCtrl($scope, $rootScope, $window, gettext, $
     commands.push('settings put global speech_savelog_file 1')
     commands.push('setprop foundation_debug 2')
 
-    if ($scope.voiceEnvRestart) {
-      VOICE_PACKAGES.forEach(function(pkg) {
-        commands.push('pm clear ' + pkg)
-      })
-      commands.push('am startservice -a ' + VOICE_SERVICE_ACTION)
-    }
+    // 切换后必须清理语音应用数据并重启服务，否则新配置不会生效
+    VOICE_PACKAGES.forEach(function(pkg) {
+      commands.push('pm clear ' + pkg)
+    })
+    commands.push('am startservice -a ' + VOICE_SERVICE_ACTION)
 
     var targetLabel = VOICE_ENV_META[target].label
 
-    if ($scope.voiceEnvRestart && !$window.confirm(
+    // 因会清理应用数据，执行前二次确认
+    if (!$window.confirm(
       gettext('切换至') + targetLabel + gettext('将清理语音应用数据并重启语音服务，是否继续？')
     )) {
       return $q.when()

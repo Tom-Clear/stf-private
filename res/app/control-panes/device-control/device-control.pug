@@ -19,6 +19,10 @@
               i(ng-show='!showScreen', uib-tooltip='{{"Show Screen"|translate}}', tooltip-placement='bottom').fa.fa-eye-slash
             button(type='button', ng-click='kickDevice(device); $event.stopPropagation()', uib-tooltip='{{"Stop Using"|translate}}', tooltip-placement='bottom').btn.btn-sm.btn-danger-outline
               i.fa.fa-times
+            .button-spacer
+            button(type='button', ng-click='resetControlPaneLayout()',
+              uib-tooltip='{{"重置分栏布局（恢复默认）"|translate}}', tooltip-placement='bottom').btn.btn-sm.btn-default-outline
+              i.fa.fa-undo
 
           .stf-vnc-device-note.pull-right(ng-show='device.notes', uib-tooltip='{{ device.notes }}', tooltip-placement='bottom')
             i.fa.fa-tag

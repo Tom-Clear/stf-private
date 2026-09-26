@@ -341,13 +341,14 @@ docker compose -f docker-compose.dev.yaml down
 
 - **环境查看**：设备连接就绪后自动读取 `areaurl`、`aicloudurl`、`digitalurl`、`taskmaster_test`、`test_url_llm` 五个 global settings，全部有值为**测试环境**（橙色标签），全部删除为**正式环境**（绿色标签），部分配置为**未知环境**（灰色标签）；鼠标悬停标签可查看具体地址，点击刷新图标可重新查询
 - **环境切换**：点击「测试环境」写入五个测试地址，点击「正式环境」删除这五个键回退到设备内置地址，两者都会额外执行 `speech_savelog_file=1`、`setprop foundation_debug 2`
-- **重启语音服务**：默认勾选，切换后按顺序执行 `pm clear` 清理 `com.keylab.speech.core.vidaa` 等语音应用数据，再拉起 `com.hisense.speech.core.STARTSERVICE`；由于会清理应用数据，执行前会有二次确认，取消勾选则只改配置不重启
+- **重启语音服务**：切换后固定按顺序执行 `pm clear` 清理 `com.keylab.speech.core.vidaa` 等语音应用数据，再拉起 `com.hisense.speech.core.STARTSERVICE`（因为不重启新配置不会生效，故不再提供“只改配置不重启”选项）；由于会清理应用数据，执行前会有二次确认
 - 命令按序串行下发，单条失败不中断，结束后以黄色提示失败条数并回查一次最新环境
 
 相关实现：`res/app/control-panes/dashboard/navigation/navigation.pug`、`navigation-controller.js`、`navigation.css`
 
 ### 7.7 其他优化与修复
 
+- **控制面板分栏布局**：左侧设备屏幕与右侧控制栏的默认分隔比例调整为 **65:35**（三分律），右侧面板更宽松协调；同时支持记住用户手动拖拽后的屏幕宽度——拖拽结束后以像素值持久化到 `localStorage`（键 `stf.controlPane.remotePaneSize`），下次进入自动恢复，未拖拽过则使用默认 65%。实现见 `res/app/control-panes/control-panes-hotkeys-controller.js`
 - **默认语言**：调整 STF 默认语言配置
 - **设备名称显示**：优化设备列表设备名称显示逻辑，有备注时优先显示备注，无备注时显示设备名，鼠标悬停可查看序列号
 - **Docker 构建修复**：修复 Linux 容器中因 CRLF 换行符导致的脚本执行失败问题，确保 `bin/stf` 在容器内正常运行

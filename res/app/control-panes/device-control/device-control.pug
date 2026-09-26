@@ -20,6 +20,10 @@
             button(type='button', ng-click='kickDevice(device); $event.stopPropagation()', uib-tooltip='{{"Stop Using"|translate}}', tooltip-placement='bottom').btn.btn-sm.btn-danger-outline
               i.fa.fa-times
 
+          .stf-vnc-device-note.pull-right(ng-show='device.notes', uib-tooltip='{{ device.notes }}', tooltip-placement='bottom')
+            i.fa.fa-tag
+            span {{ device.notes }}
+
           .device-name-container.pull-left(uib-dropdown)
             a.stf-vnc-device-name.pointer.unselectable(uib-dropdown-toggle)
               p

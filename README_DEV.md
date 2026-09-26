@@ -335,6 +335,17 @@ docker compose -f docker-compose.dev.yaml down
 - **设备列表备注**：在设备列表中显示设备备注信息（有备注时显示备注，无备注时显示设备名）
 - **底部 Tab 精简**：隐藏截图、自动化、高级、文件管理、信息等重复 Tab，优化界面布局
 
+### 7.6.1 语音环境切换
+
+语音发送面板内置语音环境（测试环境 / 正式环境）切换能力，替代 `tmp/debug_测试环境-语音.bat`、`tmp/debug_正式环境-语音.bat` 手动执行 adb 命令的方式。
+
+- **环境查看**：设备连接就绪后自动读取 `areaurl`、`aicloudurl`、`digitalurl`、`taskmaster_test`、`test_url_llm` 五个 global settings，全部有值为**测试环境**（橙色标签），全部删除为**正式环境**（绿色标签），部分配置为**未知环境**（灰色标签）；鼠标悬停标签可查看具体地址，点击刷新图标可重新查询
+- **环境切换**：点击「测试环境」写入五个测试地址，点击「正式环境」删除这五个键回退到设备内置地址，两者都会额外执行 `speech_savelog_file=1`、`setprop foundation_debug 2`
+- **重启语音服务**：默认勾选，切换后按顺序执行 `pm clear` 清理 `com.keylab.speech.core.vidaa` 等语音应用数据，再拉起 `com.hisense.speech.core.STARTSERVICE`；由于会清理应用数据，执行前会有二次确认，取消勾选则只改配置不重启
+- 命令按序串行下发，单条失败不中断，结束后以黄色提示失败条数并回查一次最新环境
+
+相关实现：`res/app/control-panes/dashboard/navigation/navigation.pug`、`navigation-controller.js`、`navigation.css`
+
 ### 7.7 其他优化与修复
 
 - **默认语言**：调整 STF 默认语言配置

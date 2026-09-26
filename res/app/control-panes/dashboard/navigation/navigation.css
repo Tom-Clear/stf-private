@@ -39,3 +39,80 @@
   margin-top: 8px;
   min-height: 18px;
 }
+
+/* 语音环境切换样式 */
+.stf-navigation .voice-env-block {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.stf-navigation .voice-env-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.stf-navigation .voice-env-label {
+  font-size: 12px;
+  color: #666;
+  margin-right: 6px;
+}
+
+.stf-navigation .voice-env-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #fff;
+  cursor: default;
+}
+
+.stf-navigation .voice-env-badge .voice-env-dot {
+  margin-right: 5px;
+  font-size: 8px;
+}
+
+.stf-navigation .voice-env-test {
+  background: #f0ad4e;
+}
+
+.stf-navigation .voice-env-prod {
+  background: #5cb85c;
+}
+
+.stf-navigation .voice-env-unknown {
+  background: #999;
+}
+
+.stf-navigation .voice-env-refresh {
+  margin-left: auto;
+  padding: 1px 6px;
+}
+
+.stf-navigation .voice-env-switch {
+  margin-bottom: 8px;
+}
+
+.stf-navigation .voice-env-restart {
+  display: block;
+  font-size: 12px;
+  font-weight: normal;
+  color: #666;
+  margin: 0;
+  cursor: pointer;
+}
+
+.stf-navigation .voice-env-restart input {
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.stf-navigation .voice-env-tip {
+  font-size: 12px;
+  margin-top: 6px;
+  min-height: 16px;
+  word-break: break-all;
+}

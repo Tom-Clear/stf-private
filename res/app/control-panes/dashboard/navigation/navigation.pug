@@ -44,4 +44,26 @@
       span.input-group-btn
         button.btn.btn-primary-outline(ng-click='sendVoice()', translate) 发送
     .stf-voice-status(ng-style='{color: voiceStatusColor}', ng-bind='voiceStatus')
+
+    //- 语音环境切换
+    .voice-env-block
+      .voice-env-row
+        span.voice-env-label(translate) 语音环境
+        span.voice-env-badge(ng-class='voiceEnvClass', uib-tooltip='{{voiceEnvDetail}}',
+          tooltip-append-to-body='true')
+          i.fa.fa-circle.voice-env-dot
+          span {{voiceEnvLabel}}
+        button.btn.btn-xs.btn-default-outline.voice-env-refresh(type='button',
+          ng-click='refreshVoiceEnv()', ng-disabled='voiceEnvBusy',
+          uib-tooltip='{{ "刷新当前语音环境" | translate }}')
+          i.fa.fa-refresh(ng-class='{"fa-spin": voiceEnvBusy}')
+      .btn-group.btn-group-xs.voice-env-switch
+        button.btn.btn-default-outline(type='button', ng-click='switchVoiceEnv("test")',
+          ng-class='{"active": voiceEnv === "test"}', ng-disabled='voiceEnvBusy', translate) 测试环境
+        button.btn.btn-default-outline(type='button', ng-click='switchVoiceEnv("prod")',
+          ng-class='{"active": voiceEnv === "prod"}', ng-disabled='voiceEnvBusy', translate) 正式环境
+      label.voice-env-restart
+        input(type='checkbox', ng-model='voiceEnvRestart')
+        span(translate) 切换后重启语音服务（清理语音应用数据）
+      .voice-env-tip(ng-if='voiceEnvTip', ng-style='{color: voiceEnvTipColor}', ng-bind='voiceEnvTip')
   //- 语音发送功能结束

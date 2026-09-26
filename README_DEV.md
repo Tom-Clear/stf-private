@@ -326,34 +326,30 @@ docker compose -f docker-compose.dev.yaml down
 - 控制面板模块引入中新增遥控器模块依赖
 - 遥控器面板支持方向键、确认键等常用控制按钮
 
-### 7.6 设备拓展与语音发送（`voice-sender.js`）
+### 7.6 今日改动汇总（2026-09-26 · dev_1.2.0）
 
-项目新增 [`voice-sender.js`](voice-sender.js) 自定义工具模块，在前端运行时注入和替换部分 UI 能力，与内置功能互补，主要包括：
+dev_1.2.0 分支本日改动（`f34ca985`、`5dd87bf3`、`72c0f341` 三次提交 + 未提交微调），均为前端 UI 层，需 `gulp`/webpack 重新构建后刷新验证。
 
-- **语音发送**：将底部 `Navigation` 面板替换为语音发送输入框，通过 shell 命令将文本发送至设备，并实时反馈发送状态
-- **UI 自动化链接**：将 `Clipboard` 面板替换为设备 UI 自动化入口链接，根据设备序列号生成跳转地址
-- **设备列表备注**：在设备列表中显示设备备注信息（有备注时显示备注，无备注时显示设备名）
-- **底部 Tab 精简**：隐藏截图、自动化、高级、文件管理、信息等重复 Tab，优化界面布局
+**语音环境切换**（`res/app/control-panes/dashboard/navigation/`，`5dd87bf3`）
 
-### 7.6.1 语音环境切换
+在已有语音发送面板基础上新增环境切换能力，替代 `tmp/debug_*语音.bat` 手动脚本：
 
-语音发送面板内置语音环境（测试环境 / 正式环境）切换能力，替代 `tmp/debug_测试环境-语音.bat`、`tmp/debug_正式环境-语音.bat` 手动执行 adb 命令的方式。
+- 读取 `areaurl`、`aicloudurl`、`digitalurl`、`taskmaster_test`、`test_url_llm` 五个 global settings 判定当前环境（全有=测试/橙、全空=正式/绿、部分=未知/灰）
+- 一键测试↔正式切换，固定执行 `pm clear` + 重启语音服务（不重启配置不生效），执行前二次确认
+- UI 打磨：「当前语音环境」「点击切换:」、勾选框对齐/冒号间距/长文案单行；刷新成功不再提示「已刷新」，仅切换成功时提示
 
-- **环境查看**：设备连接就绪后自动读取 `areaurl`、`aicloudurl`、`digitalurl`、`taskmaster_test`、`test_url_llm` 五个 global settings，全部有值为**测试环境**（橙色标签），全部删除为**正式环境**（绿色标签），部分配置为**未知环境**（灰色标签）；鼠标悬停标签可查看具体地址，点击刷新图标可重新查询
-- **环境切换**：点击「测试环境」写入五个测试地址，点击「正式环境」删除这五个键回退到设备内置地址，两者都会额外执行 `speech_savelog_file=1`、`setprop foundation_debug 2`
-- **重启语音服务**：切换后固定按顺序执行 `pm clear` 清理 `com.keylab.speech.core.vidaa` 等语音应用数据，再拉起 `com.hisense.speech.core.STARTSERVICE`（因为不重启新配置不会生效，故不再提供“只改配置不重启”选项）；由于会清理应用数据，执行前会有二次确认
-- 命令按序串行下发，单条失败不中断，结束后以黄色提示失败条数并回查一次最新环境
+**控制面板布局**（`control-panes-hotkeys-controller.js`、`control-panes.pug`、`dashboard.pug`、`remote-control/`、`device-control.pug`）
 
-相关实现：`res/app/control-panes/dashboard/navigation/navigation.pug`、`navigation-controller.js`、`navigation.css`
+- 设备屏幕与控制栏的默认分隔比例最终定为 65:35（三分律）；本日多次调整，改变了此前左侧设备屏幕区偏小的布局
+- 左右分隔条拖拽宽度按像素持久化到 `localStorage`（键 `stf.controlPane.remotePaneSize`），下次自动恢复；底部分隔不持久化，刷新即回默认
+- 设备屏幕顶部工具栏新增「↺ 重置布局」，点击即时清除记忆并恢复默认（强制 west 面板重排，无需刷新）
+- `dashboard.pug` 按高度重新配对组件（语音发送↔应用程序、上传APP↔设备拓展、Shell↔远程调试），消除右侧空余、左右更均衡
+- 底部面板加高至 38% 并紧凑化遥控器样式，完整显示「主页/返回/菜单/识屏」按钮
 
-### 7.7 其他优化与修复
+**设备备注与远程面板**（`f34ca985`）
 
-- **控制面板分栏布局**：左侧设备屏幕与右侧控制栏的默认分隔比例调整为 **65:35**（三分律），右侧面板更宽松协调；同时支持记住用户手动拖拽后的屏幕宽度——拖拽结束后以像素值持久化到 `localStorage`（键 `stf.controlPane.remotePaneSize`），下次进入自动恢复，未拖拽过则使用默认 65%。实现见 `res/app/control-panes/control-panes-hotkeys-controller.js`
-- **默认语言**：调整 STF 默认语言配置
-- **设备名称显示**：优化设备列表设备名称显示逻辑，有备注时优先显示备注，无备注时显示设备名，鼠标悬停可查看序列号
-- **Docker 构建修复**：修复 Linux 容器中因 CRLF 换行符导致的脚本执行失败问题，确保 `bin/stf` 在容器内正常运行
-
-> 以上功能均为 UI 层新增能力，本地启动 STF 并连接设备后即可在设备列表和远程控制面板中体验。
+- 调整远程控制面板尺寸
+- 新增设备备注（notes）展示样式
 
 ## 8. 常见问题（FAQ）
 

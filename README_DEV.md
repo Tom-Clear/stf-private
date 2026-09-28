@@ -351,6 +351,14 @@ dev_1.2.0 分支本日改动（`f34ca985`、`5dd87bf3`、`72c0f341` 三次提交
 - 调整远程控制面板尺寸
 - 新增设备备注（notes）展示样式
 
+**设备代理设置**（2026-09-28 · `res/app/control-panes/advanced/`）
+
+- 位置：设备控制页（`/control/:serial`）顶部「**高级(Advanced)**」标签，新增独立「**设置代理**」面板
+- 布局：与第二行的「维护(Maintenance)」面板并排（各占 `col-md-6`），保持原有两列网格结构，未改动其它行
+- 面板提供「代理IP + 端口」输入框与**设置代理**、**关闭代理**两个按钮；设置代理前端校验端口 1-65535 后拼接为 `ip:端口`，关闭代理二次确认后执行
+- 实现方式：复用当前设备的 `control.shell()`（前端直连，无后端 HTTP 接口），等价于 `adb shell settings put global http_proxy ip:端口`（关闭为 `:0`）
+- 涉及文件：`res/app/control-panes/advanced/proxy/`（新增模块）、`advanced.pug`、`index.js`
+
 ## 8. 常见问题（FAQ）
 
 ### Q1: STF 启动后设备 worker 反复崩溃，日志提示 `Failed more than 3 times in 10000ms`

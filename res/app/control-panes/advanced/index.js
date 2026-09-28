@@ -6,7 +6,8 @@ module.exports = angular.module('stf.advanced', [
 //  require('./usb').name,
 //  require('./vnc').name,
   require('./port-forwarding').name,
-  require('./maintenance').name
+  require('./maintenance').name,
+  require('./proxy').name
 ])
   .run(['$templateCache', function($templateCache) {
     $templateCache.put('control-panes/advanced/advanced.pug',

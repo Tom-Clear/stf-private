@@ -1,22 +1,30 @@
 .widget-container.fluid-height.stf-proxy(ng-controller='ProxyCtrl')
   .heading
     stacked-icon(icon='fa-exchange', color='color-blue')
-    span(translate) 设置代理
+    span(translate) 全局HTTP代理设置
   .widget-content.padded
     form(name='proxyForm', ng-submit='setProxy()')
       .form-group
-        label(translate) Proxy IP
-        input.form-control.input-sm(type='text', ng-model='proxy.host', autocomplete='off', autocorrect='off', spellcheck='false', placeholder='{{"示例 192.168.1.100" | translate}}')
+        label(translate) 代理地址
+        input.form-control.input-sm(type='text', ng-model='proxyAddress', autocomplete='off', autocorrect='off', spellcheck='false', placeholder='{{"示例 192.168.137.1:8888" | translate}}')
+        .proxy-actions
+          button(type='submit', ng-disabled='proxyBusy').btn.btn-sm.btn-primary-outline
+            i.fa.fa-exchange
+            span(translate) 设置代理
+          button(type='button', ng-disabled='proxyBusy', ng-click='clearProxy()').btn.btn-sm.btn-danger-outline
+            i.fa.fa-ban
+            span(translate) 关闭代理
       .form-group
-        label(translate) Port
-        input.form-control.input-sm(type='number', min='1', max='65535', ng-model='proxy.port', placeholder='{{"示例 8888" | translate}}')
-      div
-        button(type='submit', ng-disabled='proxyBusy').btn.btn-sm.btn-primary-outline
-          i.fa.fa-exchange
-          span(translate) 设置代理
-        button(type='button', ng-disabled='proxyBusy', ng-click='clearProxy()').btn.btn-sm.btn-danger-outline
-          i.fa.fa-ban
-          span(translate) 关闭代理
-    p.text-muted.small(ng-if='proxyStatus')
+        .clearfix.proxy-label-row
+          a.pointer.pull-right(ng-click='openWhistleUrl()')
+            i.fa.fa-external-link
+            span(translate) 点击访问
+          label(translate) Whistle Web访问地址
+        input.form-control.input-sm(type='text', ng-model='whistleUrl', autocomplete='off', autocorrect='off', spellcheck='false', placeholder='{{"示例 http://192.168.1.100:8899" | translate}}')
+        .proxy-actions
+          button(type='button', ng-click='saveWhistleUrl()').btn.btn-sm.btn-primary-outline
+            i.fa.fa-save
+            span(translate) 保存地址
+    p.text-muted.small.proxy-status(ng-if='proxyStatus')
       i.fa.fa-info-circle
       span(ng-bind='proxyStatus')

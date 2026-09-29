@@ -1,78 +1,217 @@
-module.exports = function ProxyCtrl($scope, gettext, $filter) {
-  $scope.proxy = {
-    host: ''
-  , port: ''
+module.exports = function ProxyCtrl($scope, $window, gettext, SettingsService) {
+  var PROXY_ADDRESS_PATTERN = /^[\w.\-]+:\d{1,5}$/
+  // Whistle 访问地址按设备 serial 分别持久化到用户设置（RethinkDB）
+  var WHISTLE_URLS_KEY = 'whistleUrls'
+
+  $scope.proxyAddress = ''
+  $scope.whistleUrl = ''
+  $scope.proxyStatus = ''
+  $scope.proxyBusy = false
+
+  // 已完成地址回显的设备 serial，避免重复覆盖用户输入
+  var lastLoadedSerial = null
+
+  function setStatus(message) {
+    $scope.proxyStatus = message
   }
 
-  function notify(message) {
-    $scope.$apply(function() {
-      $scope.proxyStatus = message
+  function currentSerial() {
+    return $scope.device && $scope.device.serial ? $scope.device.serial : null
+  }
+
+  function persistWhistleUrl(serial, url) {
+    var urls = angular.copy(SettingsService.get(WHISTLE_URLS_KEY) || {})
+    urls[serial] = url
+    SettingsService.set(WHISTLE_URLS_KEY, urls)
+  }
+
+  // shell 输出分片累积在 result.data 中，join 后才是完整结果
+  function runShell(command) {
+    return $scope.control.shell(command).then(function(result) {
+      var data = result && result.data ? result.data : []
+      return String(data.join('')).trim()
     })
   }
 
-  function runShell(command, onSuccess, onFail) {
+  // `settings get` 在键不存在时输出 null，`:0` 表示未设置代理
+  function parseProxyValue(output) {
+    var value = String(output || '').trim()
+    if (!value || value === 'null' || value === 'NULL' || value === ':0') {
+      return null
+    }
+    return value
+  }
+
+  // 切换到「高级」标签时面板会重新实例化，此时回显设备当前代理
+  function queryCurrentProxy() {
+    if (!$scope.control) {
+      return
+    }
+
     $scope.proxyBusy = true
-    return $scope.control.shell(command)
-      .then(function(result) {
-        $scope.proxyBusy = false
-        if (result && result.success) {
-          onSuccess(result)
-        }
-        else {
-          onFail(result && result.lastData ? result.lastData : '')
-        }
+
+    runShell('settings get global http_proxy')
+      .then(function(output) {
+        var current = parseProxyValue(output)
+        $scope.$apply(function() {
+          $scope.proxyBusy = false
+          $scope.proxyAddress = current || ''
+          setStatus(current ?
+            gettext('当前代理：') + current :
+            gettext('当前未设置代理')
+          )
+        })
       })
-      .catch(function(err) {
-        $scope.proxyBusy = false
-        onFail(err && err.message ? err.message : '')
+      .catch(function() {
+        $scope.$apply(function() {
+          $scope.proxyBusy = false
+          setStatus(gettext('查询当前代理失败'))
+        })
       })
   }
 
   $scope.setProxy = function() {
-    var host = ($scope.proxy.host || '').trim()
-    var port = ($scope.proxy.port || '').trim()
+    var address = ($scope.proxyAddress || '').trim()
 
-    if (!host) {
-      notify($filter('translate')(gettext('请输入代理IP')))
+    if (!address) {
+      setStatus(gettext('请输入代理地址'))
       return
     }
 
-    var portNum = parseInt(port, 10)
-    if (!port || isNaN(portNum) || portNum < 1 || portNum > 65535) {
-      notify($filter('translate')(gettext('请输入有效端口（1-65535）')))
+    if (!PROXY_ADDRESS_PATTERN.test(address)) {
+      setStatus(gettext('代理地址格式应为 ip:端口 或 域名:端口'))
       return
     }
 
-    var value = host + ':' + port
+    if (!$scope.control) {
+      setStatus(gettext('请先连接设备'))
+      return
+    }
+
+    $scope.proxyBusy = true
+    setStatus(gettext('正在设置代理...'))
+
     // Equivalent to: adb shell settings put global http_proxy ip:port
-    runShell(
-      'settings put global http_proxy ' + value
-    , function() {
-        notify($filter('translate')(gettext('代理已设置：')) + value)
-      }
-    , function(reason) {
-        notify($filter('translate')(gettext('代理设置失败')) + (reason ? ': ' + reason : ''))
-      }
-    )
+    runShell('settings put global http_proxy ' + address)
+      .then(function() {
+        $scope.$apply(function() {
+          $scope.proxyBusy = false
+          setStatus(gettext('代理已设置：') + address)
+        })
+      })
+      .catch(function() {
+        $scope.$apply(function() {
+          $scope.proxyBusy = false
+          setStatus(gettext('代理设置失败'))
+        })
+      })
   }
 
   $scope.clearProxy = function() {
-    var line = $filter('translate')(gettext('确认关闭该设备的代理吗？'))
-    if (!confirm(line)) {
+    if (!$scope.control) {
+      setStatus(gettext('请先连接设备'))
       return
     }
 
+    if (!$window.confirm(gettext('确认关闭该设备的代理吗？'))) {
+      return
+    }
+
+    $scope.proxyBusy = true
+
     // Equivalent to: adb shell settings put global http_proxy :0
-    runShell(
-      'settings put global http_proxy :0'
-    , function() {
-        $scope.proxy.host = ''
-        $scope.proxy.port = ''
-        notify($filter('translate')(gettext('代理已关闭')))
+    // 下发清理后立即回读，判断系统是否真正生效
+    runShell('settings put global http_proxy :0')
+      .then(function() {
+        return runShell('settings get global http_proxy')
+      })
+      .then(function(output) {
+        var current = parseProxyValue(output)
+        $scope.$apply(function() {
+          $scope.proxyBusy = false
+          $scope.proxyAddress = ''
+          if (current) {
+            setStatus(gettext('清理指令已下发，但代理仍为：') + current +
+              gettext('，若仍能抓到请求请强停被测应用或断开重连网络后重试')
+            )
+          }
+          else {
+            setStatus(gettext('代理已关闭'))
+          }
+        })
+      })
+      .catch(function() {
+        $scope.$apply(function() {
+          $scope.proxyBusy = false
+          setStatus(gettext('关闭代理失败'))
+        })
+      })
+  }
+
+  $scope.openWhistleUrl = function() {
+    var url = ($scope.whistleUrl || '').trim()
+
+    if (!url) {
+      setStatus(gettext('请输入 Whistle Web 访问地址'))
+      return
+    }
+
+    if (url.indexOf('://') === -1) {
+      url = 'http://' + url
+    }
+
+    $window.open(url, '_blank')
+  }
+
+  // 点击「保存地址」才写入数据库，不做输入即存
+  $scope.saveWhistleUrl = function() {
+    var serial = currentSerial()
+    var url = ($scope.whistleUrl || '').trim()
+
+    if (!serial) {
+      setStatus(gettext('设备信息未就绪，请稍后重试'))
+      return
+    }
+
+    if (!url) {
+      setStatus(gettext('请输入 Whistle Web 访问地址'))
+      return
+    }
+
+    persistWhistleUrl(serial, url)
+    lastLoadedSerial = serial
+    setStatus(gettext('Whistle 地址已保存'))
+  }
+
+  // 进入面板时查询用户是否保存过当前设备的地址；设备/设置可能晚于面板初始化就绪，
+  // 两者任一变化时回显一次，之后不再覆盖用户正在编辑的内容
+  $scope.$watch(
+    function() {
+      return [currentSerial(), SettingsService.get(WHISTLE_URLS_KEY)]
+    }
+  , function(newValue) {
+      var serial = newValue[0]
+      var urls = newValue[1]
+      if (!serial || !urls || serial === lastLoadedSerial) {
+        return
       }
-    , function(reason) {
-        notify($filter('translate')(gettext('关闭代理失败')) + (reason ? ': ' + reason : ''))
+      lastLoadedSerial = serial
+      if (urls[serial]) {
+        $scope.whistleUrl = urls[serial]
       }
-    )
+    }
+  , true)
+
+  // 控制会话可能晚于面板初始化建立（设备邀请是异步的），因此兼容两种时机
+  if ($scope.control) {
+    queryCurrentProxy()
+  }
+  else {
+    var stopWatch = $scope.$watch('control', function(control) {
+      if (control) {
+        stopWatch()
+        queryCurrentProxy()
+      }
+    })
   }
 }

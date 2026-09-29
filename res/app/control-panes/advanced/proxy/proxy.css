@@ -1,0 +1,41 @@
+.stf-proxy .proxy-label-row {
+  margin-bottom: 3px;
+}
+
+.stf-proxy .form-group > label {
+  margin-bottom: 2px;
+}
+
+.stf-proxy .proxy-label-row label {
+  margin-bottom: 0;
+  line-height: 20px;
+}
+
+.stf-proxy .proxy-label-row a.pointer {
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.stf-proxy .proxy-actions {
+  margin-top: 3px;
+}
+
+.stf-proxy .proxy-actions .btn + .btn {
+  margin-left: 5px;
+}
+
+/* 压缩表单组下边距，减少面板整体高度 */
+.stf-proxy .form-group {
+  margin-bottom: 6px;
+}
+
+/* 状态提示行：去掉 p 默认底部外边距，仅留与按钮行的上间距，避免顶出面板 */
+.stf-proxy .proxy-status {
+  margin: 3px 0 0;
+}
+
+/* 收紧内容区上下内边距，保证提示行无需滚动即可完整显示 */
+.stf-proxy .widget-content.padded {
+  padding-top: 8px;
+  padding-bottom: 6px;
+}

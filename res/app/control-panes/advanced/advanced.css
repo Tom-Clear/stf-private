@@ -1,3 +1,29 @@
 .stf-advanced {
 
 }
+
+/* 同一行左右两个面板等高对齐：
+   第一行 高级输入 + 全局HTTP代理设置，第二行 维护 + 转发端口；
+   断点与 Bootstrap col-md 保持一致，窄屏仍按默认堆叠 */
+@media (min-width: 992px) {
+  .advanced-pair-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .advanced-pair-row > .col-md-6 {
+    display: flex;
+  }
+
+  /* ng-include 包裹层撞满列高，内部 widget-container 拉伸对齐 */
+  .advanced-pair-row > .col-md-6 > div {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .advanced-pair-row .widget-container {
+    flex: 1;
+  }
+}

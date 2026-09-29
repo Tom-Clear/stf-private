@@ -354,12 +354,16 @@ dev_1.2.0 分支本日改动（`f34ca985`、`5dd87bf3`、`72c0f341` 三次提交
 - 调整远程控制面板尺寸
 - 新增设备备注（notes）展示样式
 
-**设备代理设置**（2026-09-28 · `res/app/control-panes/advanced/`）
+**全局HTTP代理设置**（2026-09-28 新增 · 2026-09-29 调整 · `res/app/control-panes/advanced/proxy/`）
 
-- 位置：设备控制页（`/control/:serial`）顶部「**高级(Advanced)**」标签，新增独立「**设置代理**」面板
-- 布局：与第二行的「维护(Maintenance)」面板并排（各占 `col-md-6`），保持原有两列网格结构，未改动其它行
-- 面板提供「代理IP + 端口」输入框与**设置代理**、**关闭代理**两个按钮；设置代理前端校验端口 1-65535 后拼接为 `ip:端口`，关闭代理二次确认后执行
-- 实现方式：复用当前设备的 `control.shell()`（前端直连，无后端 HTTP 接口），等价于 `adb shell settings put global http_proxy ip:端口`（关闭为 `:0`）
+- 位置：设备控制页（`/control/:serial`）顶部「高级(Advanced)」标签，面板名为「**全局HTTP代理设置**」（原名「设置代理」）。2026-09-29 重排：第一行为「高级输入 + 全局HTTP代理设置」左右并排，第二行为「维护 + 转发端口」，高面板与高面板、矮面板与矮面板配对以降低总高；同行面板通过 `advanced.css` 的 `.advanced-pair-row` flex 等高对齐（仅 ≥992px 生效）
+- 两行输入框：第一行「代理地址」直接输入 `ip:端口`，**设置代理**、**关闭代理**按钮位于其输入框下方；第二行「Whistle Web访问地址」由用户手动输入，行标题右侧提供「**点击访问**」（新窗口打开，缺 scheme 时自动补 `http://`），输入框下方为「**保存地址**」按钮
+- Whistle 地址持久化（2026-09-29）：点击「保存地址」后通过 `SettingsService` 按设备 serial 分别写入用户设置（socket → `dbapi.updateUserSettings` → RethinkDB，键 `whistleUrls` 对象），不做输入即存；进入面板时查询当前设备是否已保存过地址，已保存则回显到输入框（同设备仅回显一次，不覆盖用户编辑）
+- 配套后端修复（2026-09-29）：上游 `dbapi.updateUserSettings`（`lib/db/api.js`）原为整列替换语义，单键增量会覆盖丢失其他用户设置，已改为 `r.row('settings').default({}).merge(changes)` 显式合并；该字段无需表结构变更，新增键为自由 JSON，上线/回滚均兼容
+- 代理回显：切到「高级」时面板会重新实例化，此时执行 `adb shell settings get global http_proxy`；已设置则直接填入代理地址输入框（输出为 `null`/`:0` 视为未设置）
+- 关闭代理回读校验（2026-09-29）：`clearProxy` 下发 `:0` 后立即回读 `settings get`，若仍残留旧地址则提示「清理指令已下发但代理仍为 xxx，请强停被测应用或断开重连网络后重试」（`settings put global http_proxy :0` 仅对新连接生效，存量长连接/应用缓存代理需重启应用或重连网络，一般无需重启电视）；确认弹窗统一用 `$window.confirm`
+- 实现方式：复用当前设备的 `control.shell()`（前端直连，无后端 HTTP 接口），设置等价于 `adb shell settings put global http_proxy ip:端口`，关闭为 `:0`
+- shell 输出为分片传输，需join `result.data` 得到完整结果（`lastData` 仅为最后一段）
 - 涉及文件：`res/app/control-panes/advanced/proxy/`（新增模块）、`advanced.pug`、`index.js`
 
 ## 8. 常见问题（FAQ）

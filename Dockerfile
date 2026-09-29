@@ -30,19 +30,21 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
       --create-home \
       --shell /usr/sbin/nologin \
       stf && \
-    sed -i'' 's@http://archive.ubuntu.com/ubuntu/@mirror://mirrors.ubuntu.com/mirrors.txt@' /etc/apt/sources.list && \
+    sed -i'' 's@http://archive.ubuntu.com/ubuntu/@http://mirrors.aliyun.com/ubuntu/@g' /etc/apt/sources.list && \
+    sed -i'' 's@http://security.ubuntu.com/ubuntu/@http://mirrors.aliyun.com/ubuntu/@g' /etc/apt/sources.list && \
+    echo 'APT::Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries && \
     echo '--- Updating repositories' && \
     apt-get update && \
     echo '--- Upgrading repositories' && \
     apt-get -y dist-upgrade && \
-    apt-get -y install wget python3 build-essential && \
+    apt-get -y install --fix-missing wget python3 build-essential && \
     cd /tmp && \
     wget --progress=dot:mega \
       https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-x64.tar.xz && \
     tar -xJf node-v*.tar.xz --strip-components 1 -C /usr/local && \
     rm node-v*.tar.xz && \
     su stf-build -s /bin/bash -c '/usr/local/lib/node_modules/npm/node_modules/node-gyp/bin/node-gyp.js install' && \
-    apt-get -y install --no-install-recommends libzmq3-dev libprotobuf-dev git graphicsmagick openjdk-8-jdk yasm cmake && \
+    apt-get -y install --fix-missing --no-install-recommends libzmq3-dev libprotobuf-dev git graphicsmagick openjdk-8-jdk yasm cmake && \
     apt-get clean && \
     rm -rf /var/cache/apt/* /var/lib/apt/lists/* && \
     mkdir /tmp/bundletool && \

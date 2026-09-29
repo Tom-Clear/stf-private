@@ -206,7 +206,10 @@ docker run -d \
 
 ### 使用方法
 
+> **重要：** `start.sh` 是 bash 脚本，**必须在 WSL 终端中执行**，不能在 Windows CMD / PowerShell 中直接运行。原因详见 [FAQ Q2](#q2-在-windows-cmd-中运行-startsh-失败adb-容器启动异常)。
+
 ```bash
+# 在 WSL Ubuntu 终端中执行
 ./start.sh [device_ip:port]
 ```
 
@@ -406,6 +409,30 @@ docker exec adb adb -s <设备IP>:5555 shell "ps -A | grep -E 'stf.agent|minitou
 - 停止 STF 时不要只关闭浏览器或终端窗口，应在启动终端按 `Ctrl+C` 等待所有子进程退出。
 - 停止后可通过 `ps -A | grep -E 'stf.agent|minitouch|minirev'` 确认设备端进程已被清理。
 
+### Q2: 在 Windows CMD 中运行 `start.sh` 失败，ADB 容器启动异常
+
+**现象**
+
+在 Windows CMD 中通过 Git Bash 或其他方式执行 `./start.sh`，`rethinkdb` 容器可能正常启动，但 `adb` 容器一直失败，后续设备连接和 STF 启动也随之失败。
+
+**原因**
+
+`start.sh` 是 bash 脚本，依赖 Linux 环境执行。在 Windows CMD 中运行存在以下问题：
+
+1. **行尾符差异（CRLF vs LF）**：Windows 下 Git 检出的文件换行符为 `\r\n`（CRLF），bash 会将 `\r` 当作命令/变量的一部分，导致容器名、参数值等混入不可见字符，后续命令因找不到正确的名称而失败。这是最主要的原因。
+2. **路径格式不兼容**：脚本中的路径拼接、变量替换均按 Linux 风格编写，Windows CMD 使用反斜杠路径（`C:\Users\...`），与脚本预期不符。
+
+> 注：WSL 和 Windows CMD 中的 Docker 命令最终连接的是同一个 Docker Desktop 守护进程，Docker 操作本身没有差异，问题纯粹出在 bash 脚本的执行环境上。
+
+**解决方案**
+
+始终在 **WSL Ubuntu 终端** 中运行 `start.sh`，WSL 提供原生 Linux 环境，Docker 客户端、行尾符和路径格式均正确：
+
+```bash
+# 在 WSL 终端中执行（正确）
+./start.sh 192.168.137.95:5555
+```
+
 ## 9. 镜像构建与上线部署
 
 ### 9.1 本地构建 Docker 镜像
@@ -428,6 +455,25 @@ docker build -t stf:3.7.8 .
 - 执行 `npm install` 与 `npm pack`
 - 将产物解压到 `/app` 目录
 - 清理开发依赖与临时文件
+
+#### 使用代理构建（网络受限时）
+
+Docker 构建运行在 Hyper-V 虚拟机中，宿主机的 VPN 不会自动应用到构建容器内部。如果构建过程中 `apt-get` 出现 `502 Bad Gateway` 或 `Connection failed` 等网络错误，需要通过 `--build-arg` 将代理传入构建环境：
+
+```powershell
+docker build --build-arg http_proxy=http://host.docker.internal:<代理端口> --build-arg https_proxy=http://host.docker.internal:<代理端口> -t stf:<版本号> .
+```
+
+示例（Clash Verge，端口 7897）：
+
+```powershell
+docker build --build-arg http_proxy=http://host.docker.internal:7897 --build-arg https_proxy=http://host.docker.internal:7897 -t stf-jhk:1.2.0 .
+```
+
+> **前提条件：**
+> - 代理软件（如 Clash Verge）需开启 **"Allow LAN"（允许局域网连接）**，否则 Docker VM 的请求会被拒绝
+> - `host.docker.internal` 是 Docker Desktop 提供的特殊 DNS，指向宿主机，替代 `127.0.0.1`
+> - 构建完成后控制台可能出现 `WARNING: current commit information was not captured by the build` 提示，这是因为 `.dockerignore` 排除了 `.git` 目录，Docker 无法读取 Git 提交信息，**不影响镜像功能**，可忽略
 
 > 注意：构建耗时较长，请确保网络畅通且 Docker 有足够磁盘空间。
 

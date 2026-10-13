@@ -493,6 +493,7 @@ docker save -o stf-<版本号>.tar stf:<版本号>
 
 ```bash
 docker save -o stf-3.7.8.tar stf:3.7.8
+docker save stf-jhk:1.1.0 | gzip > stf-jhk_1.1.0.tar.gz
 ```
 
 导出后可通过 `ls -lh` 查看 tar 包大小。
